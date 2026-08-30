@@ -163,6 +163,37 @@ results <- data.frame(
 print(results)
 write.table(results, file = "results.tsv", sep = "\t")
 
+# Check specifically R1 vs all or all others
+load("model.RData")
+combined_Sol <- do.call(rbind, model)
+te_cols <- grep("^TEtype", colnames(combined_Sol), value = TRUE)
+length(te_cols)          # should be n_families - 1
+r1_col <- "TEtypeLINE.R1"
+
+# Family effects on the reference scale; reference family is 0 by construction
+fam_effects <- cbind(`DNA.TcMar-Tigger` = 0,
+                     combined_Sol[, te_cols, drop = FALSE])
+
+# Contrast: R1 vs mean of all other families
+others <- fam_effects[, colnames(fam_effects) != r1_col, drop = FALSE]
+contrast_others <- combined_Sol[, r1_col] - rowMeans(others)
+
+p <- 2 * min(mean(contrast_others > 0), mean(contrast_others < 0))
+p <- max(p, 2 / length(contrast_others))
+c(mean  = mean(contrast_others),
+  lower = unname(quantile(contrast_others, 0.025)),
+  upper = unname(quantile(contrast_others, 0.975)),
+  p_dir = mean(contrast_others > 0),
+  pMCMC = p)
+
+# And get the % increase in R1 compared to others
+fam_means <- df_mcmc %>%
+  group_by(TEtype) %>%
+  summarise(m = mean(Value, na.rm = TRUE))
+others <- mean(fam_means$m[fam_means$TEtype != "LINE.R1"])
+others
+0.0007 / others * 100 # R1 has 67% highest contact values than the others
+               
 # Is there an association between R1 contacts and nb of fu/fi?
 RM_summary_nfufi <- read.delim("RM_summary_nfufi.tsv")
 df_mcmc_R1 <- df_mcmc %>%
