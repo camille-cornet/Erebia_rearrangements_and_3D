@@ -42,6 +42,20 @@ highlight <- c("C0055","C0080","C0100","Erondoui","X3258","X3531","X3737")
 df_long_filtered$col_group <- ifelse(df_long_filtered$Species %in% highlight, df_long_filtered$Species, "Other")
 df_long_filtered$col_group <- factor(df_long_filtered$col_group,
                                      levels = c(highlight, "Other"))
+
+# Convert NA to 0 here so these values are used in the model
+df_long_filtered <- df_long_filtered %>%
+  mutate(Value = ifelse(is.na(Value), 0, Value))
+
+# Save Table S12 with raw data
+df_wide_S12 <- df_long_filtered %>%
+  dplyr::select(TEtype, Species, Value) %>%
+  pivot_wider(names_from = Species, values_from = Value) %>%
+  arrange(TEtype)
+
+write.table(df_wide_S12, file = "TableS12_TE_interchrom_contacts_wide.tsv",
+            sep = "\t", row.names = FALSE, quote = FALSE)
+
 # Colour palette
 colors <- c("Other" = "gray60",
             "C0055" = "chocolate4",
